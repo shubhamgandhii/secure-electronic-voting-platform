@@ -53,10 +53,11 @@ jobs:
         working-directory: server
         run: npm ci
 
-      - name: Run backend tests
+           - name: Run backend tests
         working-directory: server
-        run: npm test
-
+        run: |
+          node -e "const u = new URL(process.env.MONGO_URI); console.log('CI MongoDB target:', u.hostname)"
+          npm test
   client:
     runs-on: ubuntu-latest
     steps:
