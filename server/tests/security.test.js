@@ -7,7 +7,10 @@ const dotenv = require('dotenv');
 const path = require('node:path');
 const mongoose = require('mongoose');
 
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({
+  path: path.join(__dirname, '..', '.env'),
+  override: false
+});
 
 const connectDB = require('../db');
 const Vote = require('../models/Vote');
