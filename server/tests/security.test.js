@@ -1,5 +1,6 @@
 
 const test = require('node:test');
+const { before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
@@ -10,8 +11,33 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const connectDB = require('../db');
 const Vote = require('../models/Vote');
+const { app } = require('../server');
 
-const BASE_URL = 'http://localhost:5000/api';
+let BASE_URL;
+let testServer;
+
+before(async () => {
+  process.env.MONGO_URI =
+    'mongodb://127.0.0.1:27017/securevote_test?replicaSet=rs0';
+  await connectDB();
+
+  testServer = app.listen(0, '127.0.0.1');
+  await new Promise((resolve, reject) => {
+    testServer.once('listening', resolve);
+    testServer.once('error', reject);
+  });
+
+  BASE_URL = `http://127.0.0.1:${testServer.address().port}/api`;
+});
+
+after(async () => {
+  if (testServer) {
+    await new Promise((resolve, reject) => {
+      testServer.close(error => error ? reject(error) : resolve());
+    });
+  }
+  await mongoose.disconnect();
+});
 
 function createVoterToken() {
   const secret = process.env.JWT_SECRET;
@@ -145,57 +171,34 @@ test('7. Vote model declares a unique voter-election index', () => {
 });
 
 test('8. MongoDB rejects duplicate votes for the same voter and election', async () => {
-  process.env.MONGO_URI =
-    'mongodb://127.0.0.1:27017/securevote_test?replicaSet=rs0';
+  assert.equal(
+    mongoose.connection.name,
+    'securevote_test',
+    'Test must use the separate securevote_test database'
+  );
+
+  await Vote.init();
+
+  const indexes = await Vote.collection.indexes();
+  const uniqueVoteIndex = indexes.find(index =>
+    index.key.voterId === 1 &&
+    index.key.electionId === 1 &&
+    index.unique === true
+  );
+  assert.ok(uniqueVoteIndex, 'Unique voter-election index must exist in MongoDB');
+
+  const voterId = new mongoose.Types.ObjectId();
+  const candidateId = new mongoose.Types.ObjectId();
+  const electionId = 'integration-test-election';
 
   try {
-    await connectDB();
-
-    assert.equal(
-      mongoose.connection.name,
-      'securevote_test',
-      'Test must use the separate securevote_test database'
+    await Vote.create({ voterId, candidate: candidateId, electionId });
+    await assert.rejects(
+      Vote.create({ voterId, candidate: candidateId, electionId }),
+      error => error.code === 11000
     );
-
-    await Vote.init();
-
-    const indexes = await Vote.collection.indexes();
-
-    const uniqueVoteIndex = indexes.find(index =>
-      index.key.voterId === 1 &&
-      index.key.electionId === 1 &&
-      index.unique === true
-    );
-
-    assert.ok(
-      uniqueVoteIndex,
-      'Unique voter-election index must exist in MongoDB'
-    );
-
-    const voterId = new mongoose.Types.ObjectId();
-    const candidateId = new mongoose.Types.ObjectId();
-    const electionId = 'integration-test-election';
-
-    try {
-      await Vote.create({
-        voterId,
-        candidate: candidateId,
-        electionId
-      });
-
-      await assert.rejects(
-        Vote.create({
-          voterId,
-          candidate: candidateId,
-          electionId
-        }),
-        error => error.code === 11000
-      );
-    } finally {
-      await Vote.deleteMany({ voterId, electionId });
-    }
   } finally {
-    await mongoose.disconnect();
+    await Vote.deleteMany({ voterId, electionId });
   }
 });
 test('9. Login is rate-limited after too many attempts', async () => {
