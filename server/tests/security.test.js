@@ -198,3 +198,27 @@ test('8. MongoDB rejects duplicate votes for the same voter and election', async
     await mongoose.disconnect();
   }
 });
+test('9. Login is rate-limited after too many attempts', async () => {
+  const responses = [];
+
+  for (let i = 0; i < 6; i++) {
+    const response = await fetch(`${BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: 'ratelimit-test@example.com',
+        password: 'WrongPassword123!'
+      })
+    });
+
+    responses.push(response.status);
+  }
+
+  assert.equal(
+    responses[5],
+    429,
+    'The sixth login attempt should be rate-limited'
+  );
+});
