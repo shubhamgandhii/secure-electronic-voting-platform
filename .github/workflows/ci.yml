@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci-only-secret-for-tests
+      MONGO_URI: mongodb://127.0.0.1:27017/securevote_test?replicaSet=rs0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Start MongoDB replica set
+        run: |
+          docker run -d --name securevote-mongo -p 27017:27017 mongo:7 mongod --replSet rs0 --bind_ip_all
+          for attempt in {1..30}; do
+            if docker exec securevote-mongo mongosh --quiet --eval 'db.adminCommand("ping").ok'; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec securevote-mongo mongosh --quiet --eval 'rs.initiate()'
+      - name: Install backend dependencies
+        working-directory: server
+        run: npm ci
+      - name: Run backend tests
+        working-directory: server
+        run: npm test
+
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: client
+        run: npm ci
+      - name: Lint frontend
+        working-directory: client
+        run: npm run lint
+      - name: Build frontend
+        working-directory: client
+        run: npm run build
