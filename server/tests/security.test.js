@@ -222,3 +222,91 @@ test('9. Login is rate-limited after too many attempts', async () => {
     'The sixth login attempt should be rate-limited'
   );
 });
+
+function createAdminToken() {
+  const secret = process.env.JWT_SECRET;
+  assert.ok(secret, 'JWT_SECRET must be configured in server/.env');
+
+  return jwt.sign(
+    {
+      sub: '507f1f77bcf86cd799439012',
+      role: 'admin'
+    },
+    secret,
+    {
+      expiresIn: '5m',
+      issuer: 'securevote',
+      audience: 'securevote-users'
+    }
+  );
+}
+
+test('10. Candidate creation rejects missing name and party', async () => {
+  const response = await fetch(`${BASE_URL}/candidates`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${createAdminToken()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ name: '', party: '' })
+  });
+
+  assert.equal(response.status, 400);
+  const data = await response.json();
+  assert.equal(data.message, 'Candidate name and party are required.');
+});
+
+test('11. Candidate creation rejects a name shorter than two characters', async () => {
+  const response = await fetch(`${BASE_URL}/candidates`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${createAdminToken()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ name: 'A', party: 'Test Party' })
+  });
+
+  assert.equal(response.status, 400);
+  const data = await response.json();
+  assert.equal(
+    data.message,
+    'Candidate name must contain 2 to 80 characters.'
+  );
+});
+
+test('12. Candidate creation rejects a party name longer than 100 characters', async () => {
+  const response = await fetch(`${BASE_URL}/candidates`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${createAdminToken()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name: 'Test Candidate',
+      party: 'P'.repeat(101)
+    })
+  });
+
+  assert.equal(response.status, 400);
+  const data = await response.json();
+  assert.equal(data.message, 'Party name cannot exceed 100 characters.');
+});
+
+test('13. Candidate creation rejects a description longer than 500 characters', async () => {
+  const response = await fetch(`${BASE_URL}/candidates`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${createAdminToken()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name: 'Test Candidate',
+      party: 'Test Party',
+      description: 'D'.repeat(501)
+    })
+  });
+
+  assert.equal(response.status, 400);
+  const data = await response.json();
+  assert.equal(data.message, 'Description cannot exceed 500 characters.');
+});
