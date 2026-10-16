@@ -310,3 +310,47 @@ test('13. Candidate creation rejects a description longer than 500 characters', 
   const data = await response.json();
   assert.equal(data.message, 'Description cannot exceed 500 characters.');
 });
+
+test('14. Registration rejects a password shorter than 12 characters', async () => {
+  const response = await fetch(`${BASE_URL}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name: 'Password Test User',
+      email: 'short-password-test@example.com',
+      password: 'Short123!'
+    })
+  });
+
+  assert.equal(response.status, 400);
+
+  const data = await response.json();
+  assert.equal(
+    data.message,
+    'Password must contain 12 to 72 characters.'
+  );
+});
+
+test('15. Registration rejects a password longer than 72 characters', async () => {
+  const response = await fetch(`${BASE_URL}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name: 'Password Test User',
+      email: 'long-password-test@example.com',
+      password: 'P'.repeat(73)
+    })
+  });
+
+  assert.equal(response.status, 400);
+
+  const data = await response.json();
+  assert.equal(
+    data.message,
+    'Password must contain 12 to 72 characters.'
+  );
+});
