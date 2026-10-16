@@ -354,3 +354,30 @@ test('15. Registration rejects a password longer than 72 characters', async () =
     'Password must contain 12 to 72 characters.'
   );
 });
+test('Candidate listing requires authentication', async () => {
+  const response = await fetch(`${BASE_URL}/candidates`);
+
+  assert.equal(response.status, 401);
+  const data = await response.json();
+  assert.equal(data.success, false);
+  assert.equal(data.message, 'Authentication token is required.');
+});
+
+test('An authenticated voter can list candidates without exposing internal fields', async () => {
+  const response = await fetch(`${BASE_URL}/candidates`, {
+    headers: {
+      Authorization: `Bearer ${createVoterToken()}`
+    }
+  });
+
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.equal(data.success, true);
+  assert.equal(data.count, data.candidates.length);
+
+  for (const candidate of data.candidates) {
+    assert.equal(typeof candidate.name, 'string');
+    assert.equal(typeof candidate.party, 'string');
+    assert.equal(Object.hasOwn(candidate, '__v'), false);
+  }
+});
