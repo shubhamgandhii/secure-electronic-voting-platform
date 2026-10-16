@@ -37,7 +37,7 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
-    const { name, party, description, electionId } = req.body;
+    const { name, party, description, electionId } = req.body || {};
 
     if (
       typeof name !== 'string' ||
@@ -51,11 +51,36 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
+    const cleanName = name.trim();
+    const cleanParty = party.trim();
+    const cleanDescription =
+      typeof description === 'string' ? description.trim() : '';
+
+    if (cleanName.length < 2 || cleanName.length > 80) {
+      return res.status(400).json({
+        success: false,
+        message: 'Candidate name must contain 2 to 80 characters.',
+      });
+    }
+
+    if (cleanParty.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Party name cannot exceed 100 characters.',
+      });
+    }
+
+    if (cleanDescription.length > 500) {
+      return res.status(400).json({
+        success: false,
+        message: 'Description cannot exceed 500 characters.',
+      });
+    }
+
     const candidate = await Candidate.create({
-      name: name.trim(),
-      party: party.trim(),
-      description:
-        typeof description === 'string' ? description.trim() : '',
+      name: cleanName,
+      party: cleanParty,
+      description: cleanDescription,
       electionId:
         typeof electionId === 'string' && electionId.trim()
           ? electionId.trim()
