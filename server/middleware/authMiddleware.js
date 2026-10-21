@@ -1,5 +1,6 @@
 
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 function authMiddleware(req, res, next) {
   try {
@@ -26,7 +27,10 @@ function authMiddleware(req, res, next) {
       audience: 'securevote-users',
     });
 
-    if (!decoded.sub || !decoded.role) {
+    if (
+      !mongoose.isObjectIdOrHexString(decoded.sub) ||
+      !['voter', 'admin'].includes(decoded.role)
+    ) {
       return res.status(401).json({
         success: false,
         message: 'Invalid authentication token.',

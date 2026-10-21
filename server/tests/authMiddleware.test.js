@@ -40,7 +40,7 @@ test('auth middleware rejects expired tokens', () => {
 
   try {
     const token = jwt.sign(
-      { sub: 'voter-1', role: 'voter' },
+      { sub: '507f1f77bcf86cd799439011', role: 'voter' },
       TEST_SECRET,
       { ...TOKEN_OPTIONS, expiresIn: '-1s' }
     );
@@ -64,7 +64,7 @@ test('auth middleware rejects tokens for a different audience', () => {
 
   try {
     const token = jwt.sign(
-      { sub: 'voter-1', role: 'voter' },
+      { sub: '507f1f77bcf86cd799439011', role: 'voter' },
       TEST_SECRET,
       { ...TOKEN_OPTIONS, audience: 'another-service' }
     );
@@ -84,14 +84,42 @@ test('auth middleware exposes only the verified subject and role to routes', () 
 
   try {
     const token = jwt.sign(
-      { sub: 'voter-1', role: 'voter', email: 'private@example.com' },
+      {
+      sub: '507f1f77bcf86cd799439011',
+      role: 'voter',
+      email: 'private@example.com'
+    },
       TEST_SECRET,
       TOKEN_OPTIONS
     );
     const result = invokeMiddleware(`Bearer ${token}`);
 
     assert.equal(result.nextCalled, true);
-    assert.deepEqual(result.user, { id: 'voter-1', role: 'voter' });
+    assert.deepEqual(result.user, { id: '507f1f77bcf86cd799439011', role: 'voter' });
+  } finally {
+    if (originalSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = originalSecret;
+  }
+});
+
+test('auth middleware rejects malformed subjects and unknown roles', () => {
+  const originalSecret = process.env.JWT_SECRET;
+  process.env.JWT_SECRET = TEST_SECRET;
+
+  try {
+    const malformedClaims = [
+      { sub: 'not-an-object-id', role: 'voter' },
+      { sub: '507f1f77bcf86cd799439011', role: 'superadmin' }
+    ];
+
+    for (const claims of malformedClaims) {
+      const token = jwt.sign(claims, TEST_SECRET, TOKEN_OPTIONS);
+      const result = invokeMiddleware('Bearer ' + token);
+
+      assert.equal(result.status, 401);
+      assert.equal(result.nextCalled, false);
+      assert.equal(result.body.message, 'Invalid authentication token.');
+    }
   } finally {
     if (originalSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = originalSecret;
