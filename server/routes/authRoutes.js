@@ -143,6 +143,13 @@ router.post('/login', loginLimiter, async (req, res) => {
       });
     }
 
+    if (Buffer.byteLength(password, 'utf8') > 72) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must not exceed 72 UTF-8 bytes.'
+      });
+    }
+
     if (!process.env.JWT_SECRET) {
       return res.status(500).json({
         success: false,

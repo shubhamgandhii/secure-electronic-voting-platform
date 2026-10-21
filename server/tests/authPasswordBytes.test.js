@@ -41,3 +41,20 @@ test('registration rejects passwords that exceed bcrypt UTF-8 byte limit', async
     'Password must contain 12 to 72 characters and no more than 72 UTF-8 bytes.'
   );
 });
+
+test('login rejects passwords that exceed bcrypt UTF-8 byte limit', async () => {
+  const response = await fetch(baseUrl + '/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'oversized-password@example.com',
+      password: 'A'.repeat(73)
+    })
+  });
+
+  assert.equal(response.status, 400);
+  assert.equal(
+    (await response.json()).message,
+    'Password must not exceed 72 UTF-8 bytes.'
+  );
+});
