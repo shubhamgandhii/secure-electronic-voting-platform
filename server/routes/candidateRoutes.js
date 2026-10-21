@@ -51,6 +51,16 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
+    if (
+      (description !== undefined && typeof description !== 'string') ||
+      (electionId !== undefined && typeof electionId !== 'string')
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Description and election ID must be strings.',
+      });
+    }
+
     const cleanName = name.trim();
     const cleanParty = party.trim();
     const cleanDescription =
