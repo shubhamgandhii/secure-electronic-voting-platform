@@ -24,6 +24,13 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   }
 
+  if (req.user.role !== 'voter') {
+    return res.status(403).json({
+      success: false,
+      message: 'Only voters can submit a vote.',
+    });
+  }
+
   const session = await mongoose.startSession();
 
   try {
