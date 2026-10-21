@@ -159,6 +159,12 @@ Open the local URL shown in the terminal, normally:
 
 http://localhost:5173
 
+The frontend uses http://localhost:5000/api by default. To point it at a different
+backend, create client/.env.local and set VITE_API_BASE_URL to the backend API
+URL, such as https://your-backend.example/api.
+
+Restart the Vite development server after changing this value.
+
 ## 7. API Endpoints
 
 | Method | Endpoint | Purpose |
