@@ -60,17 +60,11 @@ Before running the project, install:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/shubhamgandhii/Secure-electronic-voting-platforms.git
-cd Secure-electronic-voting-platforms
+git clone https://github.com/shubhamgandhii/secure-electronic-voting-platform.git
+cd secure-electronic-voting-platform
 ```
 
 ### 2. Install dependencies
-
-Install the root dependencies:
-
-```bash
-npm install
-```
 
 Install the frontend dependencies:
 
@@ -97,7 +91,8 @@ Example:
 ```env
 PORT=5000
 JWT_SECRET=replace_with_a_secure_random_secret
-MONGO_URI=mongodb://127.0.0.1:27017/securevote
+MONGO_URI=mongodb://127.0.0.1:27017/securevote?replicaSet=rs0
+CLIENT_ORIGIN=http://localhost:5173
 ```
 
 Use the actual variable names expected by the application. Replace the example secret with a strong, private value. Never commit `.env` files, passwords, database credentials, or JWT secrets to GitHub.
@@ -128,7 +123,7 @@ Open the local URL displayed by Vite, usually:
 http://localhost:5173
 ```
 
-Ensure MongoDB is running and the backend environment variables are configured correctly before testing the application.
+Voting uses MongoDB transactions, so MongoDB must run as a replica set named rs0. Initialize it once with mongosh --eval 'rs.initiate()'. The server URI above selects this replica set.
 
 ## Security Testing
 
@@ -139,7 +134,7 @@ The project includes automated security tests covering areas such as:
 - Registration input validation
 - Duplicate-vote prevention
 
-Run the tests using the test command configured in `server/package.json`. Test results may vary depending on the database configuration and environment.
+From the server directory, run npm test. The integration tests connect to the securevote_test database on the rs0 replica set and require JWT_SECRET in server/.env. MongoDB must be available before starting the test command.
 
 ## Limitations
 
