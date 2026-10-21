@@ -335,7 +335,7 @@ test('14. Registration rejects a password shorter than 12 characters', async () 
   const data = await response.json();
   assert.equal(
     data.message,
-    'Password must contain 12 to 72 characters.'
+    'Password must contain 12 to 72 characters and no more than 72 UTF-8 bytes.'
   );
 });
 
@@ -357,7 +357,7 @@ test('15. Registration rejects a password longer than 72 characters', async () =
   const data = await response.json();
   assert.equal(
     data.message,
-    'Password must contain 12 to 72 characters.'
+    'Password must contain 12 to 72 characters and no more than 72 UTF-8 bytes.'
   );
 });
 test('Candidate listing requires authentication', async () => {

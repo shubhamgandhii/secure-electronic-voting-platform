@@ -68,10 +68,14 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    if (password.length < 12 || password.length > 72) {
+    if (
+      password.length < 12 ||
+      password.length > 72 ||
+      Buffer.byteLength(password, 'utf8') > 72
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Password must contain 12 to 72 characters.'
+        message: 'Password must contain 12 to 72 characters and no more than 72 UTF-8 bytes.'
       });
     }
 
